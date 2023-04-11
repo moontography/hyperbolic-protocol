@@ -136,6 +136,7 @@ contract UniswapV3FeeERC20 is
     uint256 _amount0, // pass desired amount tokens in position
     uint256 _amount1 // pass desired amount ETH in position
   ) internal returns (address pool) {
+    uint256 _balBefore = address(this).balance;
     (address token0, address token1) = _getToken0AndToken1();
     // if the token placements are different than what was passed in,
     // update the amounts to reflect the adjustment
@@ -178,10 +179,9 @@ contract UniswapV3FeeERC20 is
       uint256 amount1Actual
     ) = lpPosManager.mint{ value: _amountETH }(params);
     lpPosManager.refundETH();
-    if (address(this).balance > 0) {
-      (bool _ethRefunded, ) = payable(owner()).call{
-        value: address(this).balance
-      }('');
+    uint256 _returnETH = address(this).balance - (_balBefore - _amountETH);
+    if (_returnETH > 0) {
+      (bool _ethRefunded, ) = payable(owner()).call{ value: _returnETH }('');
       require(_ethRefunded, 'CREATELP: ETH not refunded');
     }
 
@@ -210,6 +210,8 @@ contract UniswapV3FeeERC20 is
     uint256 amountAdd1
   ) internal {
     require(liquidityPosInitialized, 'INCREASELP: not initialized');
+
+    uint256 _balBefore = address(this).balance;
     (address token0, address token1) = _getToken0AndToken1();
 
     // if the token placements are different than what was passed in,
@@ -236,12 +238,10 @@ contract UniswapV3FeeERC20 is
 
     (, uint256 amount0Actual, uint256 amount1Actual) = lpPosManager
       .increaseLiquidity{ value: _amountETH }(params);
-    lpPosManager.refundETH();
-    if (address(this).balance > 0) {
-      (bool _ethRefunded, ) = payable(owner()).call{
-        value: address(this).balance
-      }('');
-      require(_ethRefunded, 'INCREASELP: ETH stuck');
+    uint256 _returnETH = address(this).balance - (_balBefore - _amountETH);
+    if (_returnETH > 0) {
+      (bool _ethRefunded, ) = payable(owner()).call{ value: _returnETH }('');
+      require(_ethRefunded, 'CREATELP: ETH not refunded');
     }
 
     // remove allowances

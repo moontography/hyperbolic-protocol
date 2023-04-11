@@ -68,27 +68,24 @@ contract LendingRewards is ILendingRewards {
     if (sharesBefore == 0 && shares[shareholder].amount > 0) {
       totalStakedUsers++;
     }
-    rewards[shareholder].totalExcluded = getCumulativeRewards(
+    rewards[shareholder].totalExcluded = _getCumulativeRewards(
       shares[shareholder].amount
     );
   }
 
   function _removeShares(address shareholder, uint256 amount) private {
     require(
-      shares[shareholder].amount > 0 &&
-        (amount == 0 || amount <= shares[shareholder].amount),
+      shares[shareholder].amount > 0 && amount <= shares[shareholder].amount,
       'REMOVE: no shares'
     );
     _distributeReward(shareholder);
 
-    uint256 removeAmount = amount == 0 ? shares[shareholder].amount : amount;
-
-    totalSharesDeposited -= removeAmount;
-    shares[shareholder].amount -= removeAmount;
+    totalSharesDeposited -= amount;
+    shares[shareholder].amount -= amount;
     if (shares[shareholder].amount == 0) {
       totalStakedUsers--;
     }
-    rewards[shareholder].totalExcluded = getCumulativeRewards(
+    rewards[shareholder].totalExcluded = _getCumulativeRewards(
       shares[shareholder].amount
     );
   }
@@ -110,7 +107,7 @@ contract LendingRewards is ILendingRewards {
 
     uint256 amount = getUnpaid(shareholder);
     rewards[shareholder].totalRealized += amount;
-    rewards[shareholder].totalExcluded = getCumulativeRewards(
+    rewards[shareholder].totalExcluded = _getCumulativeRewards(
       shares[shareholder].amount
     );
 
@@ -134,7 +131,7 @@ contract LendingRewards is ILendingRewards {
       return 0;
     }
 
-    uint256 earnedRewards = getCumulativeRewards(shares[shareholder].amount);
+    uint256 earnedRewards = _getCumulativeRewards(shares[shareholder].amount);
     uint256 rewardsExcluded = rewards[shareholder].totalExcluded;
     if (earnedRewards <= rewardsExcluded) {
       return 0;
@@ -143,7 +140,9 @@ contract LendingRewards is ILendingRewards {
     return earnedRewards - rewardsExcluded;
   }
 
-  function getCumulativeRewards(uint256 share) internal view returns (uint256) {
+  function _getCumulativeRewards(
+    uint256 share
+  ) internal view returns (uint256) {
     return (share * rewardsPerShare) / MULTIPLIER;
   }
 
