@@ -210,14 +210,15 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
     uint24 _fee,
     uint8 _percentTokenAllo
   ) external payable onlyOwner {
-    require(msg.value > 0, 'ADDLP: need ETH for LP');
-    require(_percentTokenAllo <= 100, 'ADDLP: lte 100%');
+    require(msg.value > 0, 'ADDLP0');
+    require(_percentTokenAllo <= 100, 'ADDLP1');
 
     address _pool = _createLiquidityPosition(
       _fee,
       (balanceOf(address(this)) * _percentTokenAllo) / 100,
       msg.value
     );
+    _setIsRewardsExcluded(_pool, true);
     amms[_pool] = true;
   }
 
@@ -240,7 +241,11 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
     address _wallet,
     bool _isExcluded
   ) external onlyOwner {
-    require(rewardsExcluded[_wallet] != _isExcluded, 'SETEXCL: must toggle');
+    _setIsRewardsExcluded(_wallet, _isExcluded);
+  }
+
+  function _setIsRewardsExcluded(address _wallet, bool _isExcluded) internal {
+    require(rewardsExcluded[_wallet] != _isExcluded, 'SETEXCL');
     rewardsExcluded[_wallet] = _isExcluded;
 
     uint256 _walletBal = balanceOf(_wallet);

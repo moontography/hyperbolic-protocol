@@ -210,19 +210,18 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     // get LTV info after we've removed _amount to withdraw from loan
     (uint256 _currentLTVX96, , ) = getLTVX96(_tokenId);
     require(
-      _currentLTVX96 == 0 ||
-        _currentLTVX96 >= (FixedPoint96.Q96 * maxLoanToValue) / DENOMENATOR,
+      _currentLTVX96 <= (FixedPoint96.Q96 * maxLoanToValue) / DENOMENATOR,
       'WITHDRAW: exceeds max LTV'
     );
-    if (_currentLTVX96 == 0) {
-      _deleteLoan(_tokenId);
-    }
     IUniswapV3Pool _uniPool = IUniswapV3Pool(_loan.collateralPool);
     address _token0 = _uniPool.token0();
     if (_token0 == _WETH) {
       ERC20(_uniPool.token1()).safeTransfer(_wallet, _amount);
     } else {
       ERC20(_token0).safeTransfer(_wallet, _amount);
+    }
+    if (_loan.amountDeposited == 0) {
+      _deleteLoan(_tokenId);
     }
     emit Withdraw(_wallet, _tokenId, _amount);
   }
@@ -246,6 +245,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
       _loan.amountETHBorrowed,
       _loan.aprStart
     );
+    _loan.aprStart = block.timestamp;
     (, uint256 ethDepositedX96, uint256 ethBorrowedX96) = getLTVX96(_tokenId);
     uint256 ethDeposited = ethDepositedX96 / FixedPoint96.Q96;
     uint256 ethBorrowed = ethBorrowedX96 / FixedPoint96.Q96;
@@ -282,6 +282,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
       _loan.amountETHBorrowed,
       _loan.aprStart
     );
+    _loan.aprStart = block.timestamp;
     require(_amount > _amountAPRFees, 'PAYBACK: must pay back above fees');
     uint256 _amountBorrowedPlusFees = _loan.amountETHBorrowed + _amountAPRFees;
 
@@ -291,7 +292,11 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     }
 
     // remove amount minus fees from the amount borrowed
-    _loan.amountETHBorrowed -= (_amount - _amountAPRFees);
+    if ((_amount - _amountAPRFees) > _loan.amountETHBorrowed) {
+      _loan.amountETHBorrowed = 0;
+    } else {
+      _loan.amountETHBorrowed -= (_amount - _amountAPRFees);
+    }
     if (_amountAPRFees > 0) {
       _lendingRewards.depositRewards{ value: _amountAPRFees }();
     }
