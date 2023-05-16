@@ -182,7 +182,7 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
     address _token0 = IUniswapV3Pool(_pool).token0();
     marketCapETH = _token0 == address(this)
       ? (totalSupply() * _priceX96) / FixedPoint96.Q96
-      : (totalSupply() * FixedPoint96.Q96 ** 2) / _priceX96 / FixedPoint96.Q96;
+      : (totalSupply() * FixedPoint96.Q96) / _priceX96;
   }
 
   // _fee: 3000 == 0.3%, 10000 == 1%

@@ -11,12 +11,11 @@ $ npx hardhat compile
 If your contract requires extra constructor arguments, you'll have to specify them in [deploy options](https://hardhat.org/plugins/hardhat-deploy.html#deployments-deploy-name-options).
 
 ```sh
-$ CONTRACT_NAME=TwapUtils npx hardhat run --network goerli scripts/deploy.js
 $ CONTRACT_NAME=HyperbolicProtocol npx hardhat run --network goerli scripts/deploy.js
 $ CONTRACT_NAME=LendingPool npx hardhat run --network goerli scripts/deploy.js
 $ # setLendingPool()
-$ # lpCreatePool(3000, priceX96)
-$ # lpCreatePool(10000, priceX96)
+$ # lpCreatePool(3000, priceX96, 1000)
+$ # lpCreatePool(10000, priceX96, 1000)
 $ # lpCreatePosition(3000, 50)
 $ # lpCreatePosition(10000, 100)
 $ # launch()
