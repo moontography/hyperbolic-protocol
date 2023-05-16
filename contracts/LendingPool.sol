@@ -107,8 +107,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
       return (0, 0, 0);
     }
     uint160 _sqrtPriceX96 = _twapUtils.getSqrtPriceX96FromPoolAndInterval(
-      _loan.collateralPool,
-      _hype.twapInterval()
+      _loan.collateralPool
     );
     uint256 _priceX96 = _twapUtils.getPriceX96FromSqrtPriceX96(_sqrtPriceX96);
     address _token0 = IUniswapV3Pool(_loan.collateralPool).token0();

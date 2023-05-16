@@ -2,8 +2,6 @@
 pragma solidity ^0.7.6;
 
 interface IHyperbolicProtocol {
-  function twapInterval() external view returns (uint32);
-
   function poolBalToMarketCapRatio()
     external
     view

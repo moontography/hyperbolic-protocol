@@ -19,7 +19,6 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
   ITwapUtils public twapUtils;
 
   uint256 public launchTime;
-  uint32 public override twapInterval = 5 minutes;
 
   uint32 public override poolToMarketCapTarget = DENOMENATOR; // 100%
   bool public taxesEnabled = true;
@@ -178,10 +177,7 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
 
     // get token market cap relative to token1 (WETH) and calculate
     // tax based on lending pool balance of ETH (higher bal, lower tax)
-    uint160 _sqrtPriceX96 = twapUtils.getSqrtPriceX96FromPoolAndInterval(
-      _pool,
-      twapInterval
-    );
+    uint160 _sqrtPriceX96 = twapUtils.getSqrtPriceX96FromPoolAndInterval(_pool);
     uint256 _priceX96 = twapUtils.getPriceX96FromSqrtPriceX96(_sqrtPriceX96);
     address _token0 = IUniswapV3Pool(_pool).token0();
     marketCapETH = _token0 == address(this)
@@ -256,11 +252,6 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
       }
       lendingRewards.setShare(_wallet, _walletBal, _removeRewards);
     }
-  }
-
-  function setTwapInterval(uint32 _seconds) external onlyOwner {
-    require(_seconds <= 1 hours, 'SETTWAPINT: lte 1 hour');
-    twapInterval = _seconds;
   }
 
   function setSwapAtAmount(uint256 _amount) external onlyOwner {

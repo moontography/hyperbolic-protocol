@@ -2,9 +2,18 @@
 pragma solidity ^0.7.6;
 
 interface ITwapUtils {
+  function twapInterval() external view returns (uint32);
+
+  function getPoolPriceUSDX96(
+    address priceToken,
+    address pricePool,
+    address nativeStablePool,
+    address WETH9,
+    bool isPoolPairedWETH9
+  ) external view returns (uint256);
+
   function getSqrtPriceX96FromPoolAndInterval(
-    address uniswapV3Pool,
-    uint32 twapInterval
+    address uniswapV3Pool
   ) external view returns (uint160 sqrtPriceX96);
 
   function getSqrtPriceX96FromPriceX96(
