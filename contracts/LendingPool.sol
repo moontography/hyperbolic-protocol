@@ -37,7 +37,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   uint32 public borrowAPRMin = (DENOMENATOR * 2) / 100; // 2%
   uint32 public borrowAPRMax = (DENOMENATOR * 15) / 100; // 15%
   uint32 public maxLoanToValue = (DENOMENATOR * 50) / 100; // 50%
-  uint32 public liquidationLTV = DENOMENATOR; // 100%
+  uint32 public liquidationLTV = (DENOMENATOR * 95) / 100; // 95%
 
   struct Loan {
     uint256 created; // when the loan was first created
@@ -124,6 +124,10 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
 
   function getAllWhitelistedPools() external view returns (address[] memory) {
     return _allWhitelistedPools;
+  }
+
+  function getETHBalance(address _wallet) external view returns (uint256) {
+    return address(_wallet).balance;
   }
 
   function depositAndBorrow(
@@ -455,7 +459,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     maxLoanToValue = _ltv;
   }
 
-  function setLiquidationLTV(uint32 _ltv) external {
+  function setLiquidationLTV(uint32 _ltv) external onlyOwner {
     require(_ltv <= DENOMENATOR, 'SETLPLTV: lte 100%');
     liquidationLTV = _ltv;
   }
