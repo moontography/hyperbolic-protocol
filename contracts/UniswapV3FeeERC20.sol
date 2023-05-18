@@ -218,12 +218,11 @@ contract UniswapV3FeeERC20 is
 
     // if the token placements are different than what was passed in,
     // update the amounts to reflect the adjustment
-    uint256 _amountETH = amountAdd1;
+    uint256 _amountETH = amountAdd1; // ETH always passed in through amount1
     if (token0 != address(this)) {
       uint256 _cachedAmount0 = amountAdd0;
       amountAdd0 = amountAdd1;
       amountAdd1 = _cachedAmount0;
-      _amountETH = amountAdd1;
     }
 
     TransferHelper.safeApprove(token0, address(lpPosManager), amountAdd0);
