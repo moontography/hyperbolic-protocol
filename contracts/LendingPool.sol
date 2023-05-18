@@ -97,14 +97,16 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     view
     returns (
       uint256 ltvX96,
+      uint256 ltvWithFeesX96,
       uint256 amountETHDepositedX96,
       uint256 amountETHBorrowedX96
     )
   {
     require(loanNFT.doesTokenExist(_tokenId), 'GETLTV: loan must exist');
     Loan memory _loan = loans[_tokenId];
+    uint256 _fees = calculateAPRFees(_loan.amountETHBorrowed, _loan.aprStart);
     if (_loan.amountDeposited == 0 && _loan.amountETHBorrowed == 0) {
-      return (0, 0, 0);
+      return (0, 0, 0, 0);
     }
     uint160 _sqrtPriceX96 = _twapUtils.getSqrtPriceX96FromPoolAndInterval(
       _loan.collateralPool
@@ -115,8 +117,11 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
       ? (_loan.amountDeposited * 2 ** (96 * 2)) / _priceX96
       : _priceX96 * _loan.amountDeposited;
     uint256 _amountETHBorrowedX96 = _loan.amountETHBorrowed * FixedPoint96.Q96;
+    uint256 _amountETHBorrWithFeesX96 = (_loan.amountETHBorrowed + _fees) *
+      FixedPoint96.Q96;
     return (
       (_amountETHBorrowedX96 * FixedPoint96.Q96) / _amountETHDepositedX96,
+      (_amountETHBorrWithFeesX96 * FixedPoint96.Q96) / _amountETHDepositedX96,
       _amountETHDepositedX96,
       _amountETHBorrowedX96
     );
@@ -211,7 +216,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     _loan.amountDeposited -= _amount;
 
     // get LTV info after we've removed _amount to withdraw from loan
-    (uint256 _currentLTVX96, , ) = getLTVX96(_tokenId);
+    (uint256 _currentLTVX96, , , ) = getLTVX96(_tokenId);
     require(
       _currentLTVX96 <= (FixedPoint96.Q96 * maxLoanToValue) / DENOMENATOR,
       'WITHDRAW: exceeds max LTV'
@@ -244,12 +249,12 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     require(whitelistPools[_loan.collateralPool], 'BORROW: bad pool');
 
     // take out current APR fees from amount borrowing
-    uint256 _amountAPRFees = _calculateAPRFees(
+    uint256 _amountAPRFees = calculateAPRFees(
       _loan.amountETHBorrowed,
       _loan.aprStart
     );
     _loan.aprStart = block.timestamp;
-    (, uint256 ethDepositedX96, uint256 ethBorrowedX96) = getLTVX96(_tokenId);
+    (, , uint256 ethDepositedX96, uint256 ethBorrowedX96) = getLTVX96(_tokenId);
     uint256 ethDeposited = ethDepositedX96 / FixedPoint96.Q96;
     uint256 ethBorrowed = ethBorrowedX96 / FixedPoint96.Q96;
 
@@ -281,7 +286,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
 
     Loan storage _loan = loans[_tokenId];
     // take out current APR fees from amount borrowing
-    uint256 _amountAPRFees = _calculateAPRFees(
+    uint256 _amountAPRFees = calculateAPRFees(
       _loan.amountETHBorrowed,
       _loan.aprStart
     );
@@ -329,10 +334,10 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     emit DeleteLoan(_tokenId);
   }
 
-  function _calculateAPRFees(
+  function calculateAPRFees(
     uint256 _amountETHBorrowed,
     uint256 _aprStart
-  ) internal view returns (uint256) {
+  ) public view returns (uint256) {
     return
       ((block.timestamp - _aprStart) * calculateAPR() * _amountETHBorrowed) /
       365 days;
@@ -358,8 +363,8 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     if (!loanNFT.doesTokenExist(_tokenId)) {
       return false;
     }
-    (uint256 _currentLTVX96, , ) = getLTVX96(_tokenId);
-    return _currentLTVX96 >= (FixedPoint96.Q96 * liquidationLTV) / DENOMENATOR;
+    (, uint256 _ltvWithFeesX96, , ) = getLTVX96(_tokenId);
+    return _ltvWithFeesX96 >= (FixedPoint96.Q96 * liquidationLTV) / DENOMENATOR;
   }
 
   function _toggleWhitelistCollateralPool(address _pool) internal {
