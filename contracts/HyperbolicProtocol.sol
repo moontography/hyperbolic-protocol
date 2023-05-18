@@ -117,9 +117,7 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
       }
 
       if (taxesEnabled && _shouldBeTaxed(_isBuy, _isSell)) {
-        _tax = (amount * minTax) / DENOMENATOR;
-        uint256 _taxCalc = calculateTaxFromAmount(amount);
-        _tax = _taxCalc > 0 ? _taxCalc : _tax;
+        _tax = calculateTaxFromAmount(amount);
         if (_tax > 0) {
           super._transfer(sender, address(this), _tax);
           _afterTokenTransfer(sender, address(this), _tax);
@@ -155,12 +153,9 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
     uint256 _targetPoolBal = (_mcETH * poolToMarketCapTarget) / DENOMENATOR;
     if (_poolBalETH < _targetPoolBal) {
       uint256 _taxLessMax = ((maxTax - minTax) * _poolBalETH) / _targetPoolBal;
-      if (_taxLessMax > maxTax) {
-        return 0;
-      }
       return (_amount * (maxTax - _taxLessMax)) / DENOMENATOR;
     }
-    return 0;
+    return (_amount * minTax) / DENOMENATOR;
   }
 
   function poolBalToMarketCapRatio()

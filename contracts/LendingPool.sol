@@ -339,21 +339,23 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     uint256 _aprStart
   ) public view returns (uint256) {
     return
-      ((block.timestamp - _aprStart) * calculateAPR() * _amountETHBorrowed) /
+      ((block.timestamp - _aprStart) *
+        calculateBorrowAPR() *
+        _amountETHBorrowed) /
       DENOMENATOR /
       365 days;
   }
 
-  function calculateAPR() public view returns (uint256) {
+  function calculateBorrowAPR() public view returns (uint256) {
     (uint256 _poolBalETH, uint256 _mcETH) = _hype.poolBalToMarketCapRatio();
     uint256 _targetPoolBal = (_mcETH * _hype.poolToMarketCapTarget()) /
       DENOMENATOR;
     if (_poolBalETH < _targetPoolBal) {
-      uint256 _aprBelowMax = ((borrowAPRMax - borrowAPRMin) * _poolBalETH) /
+      uint256 _aprAboveMin = ((borrowAPRMax - borrowAPRMin) * _poolBalETH) /
         _targetPoolBal;
-      return borrowAPRMax - _aprBelowMax;
+      return borrowAPRMin + _aprAboveMin;
     }
-    return 0;
+    return borrowAPRMax;
   }
 
   function shouldLiquidateLoan(uint256 _tokenId) external view returns (bool) {
