@@ -340,6 +340,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   ) public view returns (uint256) {
     return
       ((block.timestamp - _aprStart) * calculateAPR() * _amountETHBorrowed) /
+      DENOMENATOR /
       365 days;
   }
 
