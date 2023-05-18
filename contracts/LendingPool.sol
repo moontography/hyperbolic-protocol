@@ -295,7 +295,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     uint256 _amountBorrowedPlusFees = _loan.amountETHBorrowed + _amountAPRFees;
 
     uint256 _refund;
-    if (_amount >= _amountBorrowedPlusFees) {
+    if (_amount > _amountBorrowedPlusFees) {
       _refund = _amount - _amountBorrowedPlusFees;
     }
 
