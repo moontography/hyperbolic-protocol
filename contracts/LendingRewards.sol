@@ -2,12 +2,11 @@
 pragma solidity ^0.7.6;
 
 import './interfaces/ILendingRewards.sol';
+import './libraries/BokkyPooBahsDateTimeLibrary.sol';
 
 contract LendingRewards is ILendingRewards {
   uint256 constant MULTIPLIER = 10 ** 36;
-
   address public token;
-
   uint256 public totalStakedUsers;
   uint256 public totalSharesDeposited;
 
@@ -22,9 +21,10 @@ contract LendingRewards is ILendingRewards {
   mapping(address => Share) private shares;
   mapping(address => Reward) public rewards;
 
-  uint256 public totalRewards;
-  uint256 public totalDistributed;
   uint256 public rewardsPerShare;
+  uint256 public totalDistributed;
+  uint256 public totalRewards;
+  mapping(uint256 => uint256) public monthlyRewards;
 
   event AddShares(address indexed user, uint256 amount);
   event RemoveShares(address indexed user, uint256 amount);
@@ -68,7 +68,7 @@ contract LendingRewards is ILendingRewards {
     if (sharesBefore == 0 && shares[shareholder].amount > 0) {
       totalStakedUsers++;
     }
-    rewards[shareholder].totalExcluded = _getCumulativeRewards(
+    rewards[shareholder].totalExcluded = _cumulativeRewards(
       shares[shareholder].amount
     );
   }
@@ -85,7 +85,7 @@ contract LendingRewards is ILendingRewards {
     if (shares[shareholder].amount == 0) {
       totalStakedUsers--;
     }
-    rewards[shareholder].totalExcluded = _getCumulativeRewards(
+    rewards[shareholder].totalExcluded = _cumulativeRewards(
       shares[shareholder].amount
     );
   }
@@ -96,6 +96,8 @@ contract LendingRewards is ILendingRewards {
     require(totalSharesDeposited > 0, 'DEPOSIT: no shares');
 
     totalRewards += _amount;
+    uint256 _month = beginningOfMonth(block.timestamp);
+    monthlyRewards[_month] += _amount;
     rewardsPerShare += (MULTIPLIER * _amount) / totalSharesDeposited;
     emit DepositRewards(msg.sender, _amount);
   }
@@ -107,7 +109,7 @@ contract LendingRewards is ILendingRewards {
 
     uint256 amount = getUnpaid(shareholder);
     rewards[shareholder].totalRealized += amount;
-    rewards[shareholder].totalExcluded = _getCumulativeRewards(
+    rewards[shareholder].totalExcluded = _cumulativeRewards(
       shares[shareholder].amount
     );
 
@@ -130,19 +132,23 @@ contract LendingRewards is ILendingRewards {
     if (shares[shareholder].amount == 0) {
       return 0;
     }
-
-    uint256 earnedRewards = _getCumulativeRewards(shares[shareholder].amount);
+    uint256 earnedRewards = _cumulativeRewards(shares[shareholder].amount);
     uint256 rewardsExcluded = rewards[shareholder].totalExcluded;
     if (earnedRewards <= rewardsExcluded) {
       return 0;
     }
-
     return earnedRewards - rewardsExcluded;
   }
 
-  function _getCumulativeRewards(
-    uint256 share
-  ) internal view returns (uint256) {
+  function beginningOfMonth(uint256 _timestamp) public view returns (uint256) {
+    (, , uint256 _dayOfMonth) = BokkyPooBahsDateTimeLibrary.timestampToDate(
+      _timestamp
+    );
+    return
+      _timestamp - ((_dayOfMonth - 1) * 24 * 60 * 60) - (_timestamp % 1 days);
+  }
+
+  function _cumulativeRewards(uint256 share) internal view returns (uint256) {
     return (share * rewardsPerShare) / MULTIPLIER;
   }
 

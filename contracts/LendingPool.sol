@@ -17,11 +17,9 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   using SafeERC20 for ERC20;
 
   uint32 constant DENOMENATOR = 10000;
-  uint256 immutable CREATION;
   address immutable _WETH;
 
-  bool public enabled = true;
-  uint32 public buildUpPeriod = 1 days;
+  bool public enabled;
   uint32 public maxLiquidationsPerUpkeep = 50;
 
   LoanToken public loanNFT;
@@ -79,7 +77,6 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     LendingRewards __lendingRewards,
     address __WETH
   ) {
-    CREATION = block.timestamp;
     _hype = __hype;
     _twapUtils = __twapUtils;
     _lendingRewards = __lendingRewards;
@@ -216,9 +213,9 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     _loan.amountDeposited -= _amount;
 
     // get LTV info after we've removed _amount to withdraw from loan
-    (uint256 _currentLTVX96, , , ) = getLTVX96(_tokenId);
+    (, uint256 _ltvAndFeesX96, , ) = getLTVX96(_tokenId);
     require(
-      _currentLTVX96 <= (FixedPoint96.Q96 * maxLoanToValue) / DENOMENATOR,
+      _ltvAndFeesX96 <= (FixedPoint96.Q96 * maxLoanToValue) / DENOMENATOR,
       'WITHDRAW: exceeds max LTV'
     );
     IUniswapV3Pool _uniPool = IUniswapV3Pool(_loan.collateralPool);
@@ -240,9 +237,6 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     uint256 _amountETH
   ) internal returns (uint256) {
     require(enabled, 'BORROW: not enabled');
-
-    // require 1 day to build up lending reserves before borrowing assets
-    require(block.timestamp >= CREATION + buildUpPeriod, 'BORROW: build up');
     _validateLoanOwner(_wallet, _tokenId);
 
     Loan storage _loan = loans[_tokenId];
@@ -440,11 +434,6 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
 
   function _validateLoanOwner(address _wallet, uint256 _tokenId) internal view {
     require(_wallet == loanNFT.ownerOf(_tokenId), 'VALIDATEOWNER');
-  }
-
-  function setBuildUpPeriod(uint32 _seconds) external onlyOwner {
-    require(_seconds <= 7 days, 'SETBUILDUP: max 7 days');
-    buildUpPeriod = _seconds;
   }
 
   function setBorrowInitFee(uint32 _fee) external onlyOwner {
