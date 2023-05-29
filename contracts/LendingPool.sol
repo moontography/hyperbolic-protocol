@@ -36,8 +36,10 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   uint32 public borrowInitFee = (DENOMENATOR * 3) / 100; // 3%
   uint32 public borrowAPRMin = (DENOMENATOR * 2) / 100; // 2%
   uint32 public borrowAPRMax = (DENOMENATOR * 15) / 100; // 15%
-  uint32 public maxLoanToValue = (DENOMENATOR * 50) / 100; // 50%
   uint32 public liquidationLTV = (DENOMENATOR * 95) / 100; // 95%
+  uint32 public maxLTVOverall = (DENOMENATOR * 50) / 100; // 50%
+  // pool => LTV override
+  mapping(address => uint32) public maxLTVOverride;
 
   struct Loan {
     uint256 created; // when the loan was first created
@@ -221,10 +223,19 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
 
     // get LTV info after we've removed _amount to withdraw from loan
     (, uint256 _ltvAndFeesX96, , ) = getLTVX96(_tokenId);
-    require(
-      _ltvAndFeesX96 <= (FixedPoint96.Q96 * maxLoanToValue) / DENOMENATOR,
-      'WITHDRAW: exceeds max LTV'
-    );
+    if (maxLTVOverride[_loan.collateralPool] > 0) {
+      require(
+        _ltvAndFeesX96 <=
+          (FixedPoint96.Q96 * maxLTVOverride[_loan.collateralPool]) /
+            DENOMENATOR,
+        'WITHDRAW: exceeds max LTV'
+      );
+    } else {
+      require(
+        _ltvAndFeesX96 <= (FixedPoint96.Q96 * maxLTVOverall) / DENOMENATOR,
+        'WITHDRAW: exceeds max LTV'
+      );
+    }
     IUniswapV3Pool _uniPool = IUniswapV3Pool(_loan.collateralPool);
     address _token0 = _uniPool.token0();
     if (_token0 == _WETH) {
@@ -263,7 +274,9 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     uint256 ethDeposited = ethDepositedX96 / FixedPoint96.Q96;
     uint256 ethBorrowed = ethBorrowedX96 / FixedPoint96.Q96;
 
-    uint256 _maxLoanETH = (ethDeposited * maxLoanToValue) / DENOMENATOR;
+    uint256 _maxLoanETH = maxLTVOverride[_loan.collateralPool] > 0
+      ? (ethDeposited * maxLTVOverride[_loan.collateralPool]) / DENOMENATOR
+      : (ethDeposited * maxLTVOverall) / DENOMENATOR;
     require(ethBorrowed + _amountETH <= _maxLoanETH, 'BORROW: exceeds max');
     require(address(this).balance >= _amountETH, 'BORROW: not enough funds');
 
@@ -466,9 +479,14 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     borrowAPRMax = _apr;
   }
 
-  function setMaxLoanToValue(uint32 _ltv) external onlyOwner {
+  function setMaxLTVOverall(uint32 _ltv) external onlyOwner {
     require(_ltv <= DENOMENATOR, 'SETLTVMAX: lte 100%');
-    maxLoanToValue = _ltv;
+    maxLTVOverall = _ltv;
+  }
+
+  function setMaxLTVOverride(address _pool, uint32 _ltv) external onlyOwner {
+    require(_ltv <= DENOMENATOR, 'SETLTVMAX: lte 100%');
+    maxLTVOverride[_pool] = _ltv;
   }
 
   function setLiquidationLTV(uint32 _ltv) external onlyOwner {
