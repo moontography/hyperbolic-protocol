@@ -35,6 +35,9 @@ contract LendingPoolTokenCustodian is Ownable, RewardsTracker {
     uint256 _hypeTokens = IERC20(hype).balanceOf(address(this));
     if (_hypeTokens > 0) {
       _depositRewards(msg.value);
+    } else {
+      (bool _success, ) = payable(owner()).call{ value: msg.value }('');
+      require(_success, 'RECEIVE: did not send to owner');
     }
   }
 }
