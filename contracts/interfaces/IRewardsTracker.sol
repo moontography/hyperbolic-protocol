@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.6;
 
-interface ILendingRewards {
+interface IRewardsTracker {
   function claimReward() external;
 
   function depositRewards() external payable;

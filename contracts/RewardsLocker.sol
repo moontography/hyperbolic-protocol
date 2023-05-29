@@ -2,12 +2,12 @@
 pragma solidity ^0.7.6;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './interfaces/ILendingRewards.sol';
+import './interfaces/IRewardsTracker.sol';
 
 contract RewardsLocker is Ownable {
-  ILendingRewards public rewards;
+  IRewardsTracker public rewards;
 
-  constructor(ILendingRewards _rewards) {
+  constructor(IRewardsTracker _rewards) {
     rewards = _rewards;
   }
 

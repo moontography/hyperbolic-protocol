@@ -9,6 +9,7 @@ import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '@uniswap/v3-core/contracts/libraries/FixedPoint96.sol';
 import './LoanToken.sol';
+import './LendingPoolTokenCustodian.sol';
 import './LendingRewards.sol';
 import './interfaces/IHyperbolicProtocol.sol';
 import './interfaces/ITwapUtils.sol';
@@ -22,6 +23,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   bool public enabled;
   uint32 public maxLiquidationsPerUpkeep = 50;
 
+  LendingPoolTokenCustodian public custodian;
   LoanToken public loanNFT;
   IHyperbolicProtocol _hype;
   LendingRewards _lendingRewards;
@@ -39,6 +41,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
 
   struct Loan {
     uint256 created; // when the loan was first created
+    address createdBy; // original wallet who created loan for lending rewards
     uint256 aprStart; // the starting timestamp we should evaluate APR fees from
     address collateralPool; // Uniswap V3 Pool of collateral token and ETH (WETH)
     uint256 amountDeposited; // amount of collateral token from collateralPool deposited
@@ -82,6 +85,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     _lendingRewards = __lendingRewards;
     _WETH = __WETH;
 
+    custodian = new LendingPoolTokenCustodian(address(_hype));
     loanNFT = new LoanToken(_baseTokenURI);
     loanNFT.setRoyaltyAddress(msg.sender);
     loanNFT.transferOwnership(msg.sender);
@@ -178,6 +182,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     if (_loan.collateralPool == address(0)) {
       require(whitelistPools[_pool], 'DEPOSIT: bad pool0');
       _loan.created = block.timestamp;
+      _loan.createdBy = _wallet;
       _loan.aprStart = block.timestamp;
       _loan.collateralPool = _pool;
       _uniPool = IUniswapV3Pool(_pool);
@@ -188,13 +193,15 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     _loan.amountDeposited += _amount;
     address _token0 = _uniPool.token0();
     if (_token0 == _WETH) {
-      ERC20(_uniPool.token1()).safeTransferFrom(
-        _wallet,
-        address(this),
-        _amount
-      );
+      ERC20 _t1 = ERC20(_uniPool.token1());
+      _t1.safeTransferFrom(_wallet, address(this), _amount);
+      _t1.approve(address(custodian), _amount);
+      custodian.process(_t1, _loan.createdBy, _amount, false);
     } else {
-      ERC20(_token0).safeTransferFrom(_wallet, address(this), _amount);
+      ERC20 _t0 = ERC20(_token0);
+      _t0.safeTransferFrom(_wallet, address(this), _amount);
+      _t0.approve(address(custodian), _amount);
+      custodian.process(_t0, _loan.createdBy, _amount, false);
     }
     emit Deposit(_wallet, _tokenId, _amount);
     return _tokenId;
@@ -221,9 +228,13 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     IUniswapV3Pool _uniPool = IUniswapV3Pool(_loan.collateralPool);
     address _token0 = _uniPool.token0();
     if (_token0 == _WETH) {
-      ERC20(_uniPool.token1()).safeTransfer(_wallet, _amount);
+      ERC20 _t1 = ERC20(_uniPool.token1());
+      custodian.process(_t1, _loan.createdBy, _amount, true);
+      _t1.safeTransfer(_wallet, _amount);
     } else {
-      ERC20(_token0).safeTransfer(_wallet, _amount);
+      ERC20 _t0 = ERC20(_token0);
+      custodian.process(_t0, _loan.createdBy, _amount, true);
+      _t0.safeTransfer(_wallet, _amount);
     }
     if (_loan.amountDeposited == 0) {
       _deleteLoan(_tokenId);
@@ -423,9 +434,13 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
         IUniswapV3Pool _pool = IUniswapV3Pool(_loan.collateralPool);
         address _token0 = _pool.token0();
         if (_token0 == _WETH) {
-          ERC20(_pool.token1()).safeTransfer(owner(), _amountDeposited);
+          ERC20 _t1 = ERC20(_pool.token1());
+          custodian.process(_t1, _loan.createdBy, _amountDeposited, true);
+          _t1.safeTransfer(owner(), _amountDeposited);
         } else {
-          ERC20(_token0).safeTransfer(owner(), _amountDeposited);
+          ERC20 _t0 = ERC20(_token0);
+          custodian.process(_t0, _loan.createdBy, _amountDeposited, true);
+          _t0.safeTransfer(owner(), _amountDeposited);
         }
         _deleteLoan(_tokenId);
       }
