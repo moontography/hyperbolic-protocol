@@ -63,7 +63,7 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
     twapUtils = _twapUtils;
     lendingRewards = new LendingRewards(address(this));
     rewardsLocker = new RewardsLocker(lendingRewards);
-    rewardsLocker.transferOwnership(msg.sender);
+    rewardsLocker.transferOwnership(_msgSender());
 
     rewardsExcluded[address(this)] = true;
 
@@ -138,8 +138,8 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
   }
 
   function burn(uint256 _amount) external {
-    _burn(msg.sender, _amount);
-    emit Burn(msg.sender, _amount);
+    _burn(_msgSender(), _amount);
+    emit Burn(_msgSender(), _amount);
   }
 
   function calculateTaxFromAmount(
@@ -192,19 +192,15 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
   }
 
   // _fee: 3000 == 0.3%, 10000 == 1%
-  // _percentTokenAllo: 50 == 50%, 100 == 100%
   function lpCreatePosition(
     uint24 _fee,
-    uint8 _percentTokenAllo
+    uint256 _tokensNoDecimals
   ) external payable onlyOwner {
     require(msg.value > 0, 'ADDLP0');
-    require(_percentTokenAllo <= 100, 'ADDLP1');
 
-    address _pool = _createLiquidityPosition(
-      _fee,
-      (balanceOf(address(this)) * _percentTokenAllo) / 100,
-      msg.value
-    );
+    uint256 _tokens = _tokensNoDecimals * 10 ** decimals();
+    super._transfer(_msgSender(), address(this), _tokens);
+    address _pool = _createLiquidityPosition(_fee, _tokens, msg.value);
     _setIsRewardsExcluded(_pool, true);
     amms[_pool] = true;
   }
