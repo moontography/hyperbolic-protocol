@@ -49,8 +49,7 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
     INonfungiblePositionManager _manager,
     ISwapRouter _swapRouter,
     address _factory,
-    address _WETH9,
-    uint64 _totalSupply
+    address _WETH9
   )
     UniswapV3FeeERC20(
       'Hyperbolic Protocol',
@@ -68,14 +67,11 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
 
     rewardsExcluded[address(this)] = true;
 
-    require(_totalSupply > 0, 'CONSTR: need token supply');
-    uint256 _totalSuppIncDecimals = _totalSupply * 10 ** decimals();
-    uint256 _lpTokens = (_totalSuppIncDecimals * 40) / 100; // 40% to LP
+    uint256 _totalSuppIncDecimals = 100_000_000 * 10 ** decimals();
     uint256 _lockerTokens = (_totalSuppIncDecimals * 10) / 100; // 10% to locker forever
-    uint256 _airdropTokens = _totalSuppIncDecimals - _lpTokens - _lockerTokens;
-    _mint(address(this), _lpTokens);
+    uint256 _disTokens = _totalSuppIncDecimals - _lockerTokens;
     _mint(address(rewardsLocker), _lockerTokens);
-    _mint(owner(), _airdropTokens);
+    _mint(owner(), _disTokens);
     swapAtAmount = (_totalSuppIncDecimals * 2) / 1000; // 0.2% supply
   }
 
