@@ -16,9 +16,12 @@ $ CONTRACT_NAME=LendingPool npx hardhat run --network goerli scripts/deploy.js
 $ # setLendingPool()
 $ # lpCreatePool(3000, priceX96, 1000)
 $ # lpCreatePool(10000, priceX96, 1000)
-$ # lpCreatePosition(3000, 50)
-$ # lpCreatePosition(10000, 100)
-$ # launch()
+$ # lpCreatePosition(3000, 20000000)
+$ # lpCreatePosition(10000, 20000000)
+$ # toggleWhitelistCollateralPool($HYPE_V3_POOL)
+$ # toggleWhitelistCollateralPool($WBTC_POOL)
+$ # launch() # HyperbolicProtocol
+$ # setEnabled() # LendingPool
 ```
 
 ## Verify
