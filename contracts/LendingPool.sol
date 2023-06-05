@@ -276,7 +276,10 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     uint256 _maxLoanETH = maxLTVOverride[_loan.collateralPool] > 0
       ? (ethDeposited * maxLTVOverride[_loan.collateralPool]) / DENOMENATOR
       : (ethDeposited * maxLTVOverall) / DENOMENATOR;
-    require(ethBorrowed + _amountETH <= _maxLoanETH, 'BORROW: exceeds max');
+    require(ethBorrowed < _maxLoanETH, 'BORROW: cannot borrow');
+    if (ethBorrowed + _amountETH > _maxLoanETH) {
+      _amountETH = _maxLoanETH - ethBorrowed;
+    }
     require(address(this).balance >= _amountETH, 'BORROW: not enough funds');
 
     _loan.amountETHBorrowed += _amountETH;
@@ -368,11 +371,11 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     uint256 _targetPoolBal = (_mcETH * _hype.poolToMarketCapTarget()) /
       DENOMENATOR;
     if (_poolBalETH < _targetPoolBal) {
-      uint256 _aprAboveMin = ((borrowAPRMax - borrowAPRMin) * _poolBalETH) /
+      uint256 _aprLessMax = ((borrowAPRMax - borrowAPRMin) * _poolBalETH) /
         _targetPoolBal;
-      return borrowAPRMin + _aprAboveMin;
+      return borrowAPRMax - _aprLessMax;
     }
-    return borrowAPRMax;
+    return borrowAPRMin;
   }
 
   function shouldLiquidateLoan(uint256 _tokenId) external view returns (bool) {
