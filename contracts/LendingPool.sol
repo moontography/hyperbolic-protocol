@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import '@chainlink/contracts/src/v0.7/KeeperCompatible.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
@@ -7,11 +8,14 @@ import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '@uniswap/v3-core/contracts/libraries/FixedPoint96.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import './LoanToken.sol';
 import './LendingPoolTokenCustodian.sol';
 import './LendingRewards.sol';
 import './interfaces/IHyperbolicProtocol.sol';
 import './interfaces/ITwapUtils.sol';
+import './interfaces/IWETH.sol';
 
 contract LendingPool is Ownable, KeeperCompatibleInterface {
   using SafeERC20 for ERC20;
@@ -20,13 +24,15 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   address immutable _WETH;
 
   bool public enabled;
-  uint32 public maxLiquidationsPerUpkeep = 50;
+  bool public liquidateDefaultCapital;
+  uint32 public maxLiquidationsPerUpkeep = 10;
 
   LendingPoolTokenCustodian public custodian;
   LoanToken public loanNFT;
   IHyperbolicProtocol _hype;
   LendingRewards _lendingRewards;
   ITwapUtils _twapUtils;
+  ISwapRouter _swapRouter;
 
   mapping(address => bool) public whitelistPools;
   address[] _allWhitelistedPools;
@@ -39,6 +45,10 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   uint32 public maxLTVOverall = (DENOMENATOR * 50) / 100; // 50%
   // pool => LTV override
   mapping(address => uint32) public maxLTVOverride;
+  // pool => current borrowed ETH
+  mapping(address => uint256) public currentBorrowPerPool;
+  // pool => borrow max
+  mapping(address => uint256) public maxBorrowPerPool;
 
   struct Loan {
     uint256 created; // when the loan was first created
@@ -76,11 +86,13 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
 
   constructor(
     string memory _baseTokenURI,
+    ISwapRouter __swapRouter,
     IHyperbolicProtocol __hype,
     ITwapUtils __twapUtils,
     LendingRewards __lendingRewards,
     address __WETH
   ) {
+    _swapRouter = __swapRouter;
     _hype = __hype;
     _twapUtils = __twapUtils;
     _lendingRewards = __lendingRewards;
@@ -282,6 +294,14 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     }
     require(address(this).balance >= _amountETH, 'BORROW: not enough funds');
 
+    if (maxBorrowPerPool[_loan.collateralPool] > 0) {
+      require(
+        currentBorrowPerPool[_loan.collateralPool] + _amountETH <=
+          maxBorrowPerPool[_loan.collateralPool],
+        'BORROW: exceeds pool max'
+      );
+    }
+    currentBorrowPerPool[_loan.collateralPool] += _amountETH;
     _loan.amountETHBorrowed += _amountETH;
     uint256 _amountFees = _amountAPRFees +
       ((_amountETH * borrowInitFee) / DENOMENATOR);
@@ -320,11 +340,15 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     }
 
     // remove amount minus fees from the amount borrowed
-    if ((_amount - _amountAPRFees) > _loan.amountETHBorrowed) {
-      _loan.amountETHBorrowed = 0;
-    } else {
-      _loan.amountETHBorrowed -= (_amount - _amountAPRFees);
-    }
+    currentBorrowPerPool[_loan.collateralPool] -= (_amount - _amountAPRFees) >
+      currentBorrowPerPool[_loan.collateralPool]
+      ? currentBorrowPerPool[_loan.collateralPool]
+      : _amount - _amountAPRFees;
+    _loan.amountETHBorrowed -= (_amount - _amountAPRFees) >
+      _loan.amountETHBorrowed
+      ? _loan.amountETHBorrowed
+      : _amount - _amountAPRFees;
+
     if (_amountAPRFees > 0) {
       _depositRewards(_amountAPRFees);
     }
@@ -455,19 +479,56 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
         if (_token0 == _WETH) {
           ERC20 _t1 = ERC20(_pool.token1());
           custodian.process(_t1, _loan.createdBy, _amountDeposited, true);
-          _t1.safeTransfer(owner(), _amountDeposited);
+          _processLiquidatedTokens(_pool, _t1, _amountDeposited);
         } else {
           ERC20 _t0 = ERC20(_token0);
           custodian.process(_t0, _loan.createdBy, _amountDeposited, true);
-          _t0.safeTransfer(owner(), _amountDeposited);
+          _processLiquidatedTokens(_pool, _t0, _amountDeposited);
         }
         _deleteLoan(_tokenId);
       }
     }
   }
 
+  function _processLiquidatedTokens(
+    IUniswapV3Pool _pool,
+    ERC20 _token,
+    uint256 _amount
+  ) internal {
+    if (liquidateDefaultCapital && address(_token) != address(_hype)) {
+      TransferHelper.safeApprove(
+        address(_token),
+        address(_swapRouter),
+        _amount
+      );
+      _swapRouter.exactInputSingle(
+        ISwapRouter.ExactInputSingleParams({
+          tokenIn: address(_token),
+          tokenOut: _WETH,
+          fee: _pool.fee(),
+          recipient: address(this),
+          deadline: block.timestamp,
+          amountIn: _amount,
+          amountOutMinimum: 0,
+          sqrtPriceLimitX96: 0
+        })
+      );
+      uint256 _balWETH = IERC20(_WETH).balanceOf(address(this));
+      if (_balWETH > 0) {
+        IWETH(_WETH).withdraw(_balWETH);
+      }
+    } else {
+      _token.safeTransfer(owner(), _amount);
+    }
+  }
+
   function _validateLoanOwner(address _wallet, uint256 _tokenId) internal view {
     require(_wallet == loanNFT.ownerOf(_tokenId), 'VALIDATEOWNER');
+  }
+
+  function setLiquidateDefaultCapital(bool _shouldLiq) external onlyOwner {
+    require(liquidateDefaultCapital != _shouldLiq, 'SETLIQDEF');
+    liquidateDefaultCapital = _shouldLiq;
   }
 
   function setBorrowInitFee(uint32 _fee) external onlyOwner {
@@ -493,6 +554,13 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   function setMaxLTVOverride(address _pool, uint32 _ltv) external onlyOwner {
     require(_ltv <= DENOMENATOR, 'SETLTVMAX: lte 100%');
     maxLTVOverride[_pool] = _ltv;
+  }
+
+  function setMaxBorrowPerPool(
+    address _pool,
+    uint256 _amountETH
+  ) external onlyOwner {
+    maxBorrowPerPool[_pool] = _amountETH;
   }
 
   function setLiquidationLTV(uint32 _ltv) external onlyOwner {

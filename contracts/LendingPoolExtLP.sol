@@ -10,11 +10,21 @@ contract LendingPoolExtLP is LendingPool {
 
   constructor(
     string memory _baseTokenURI,
+    ISwapRouter __swapRouter,
     IHyperbolicProtocol __hype,
     ITwapUtils __twapUtils,
     LendingRewards __lendingRewards,
     address __WETH
-  ) LendingPool(_baseTokenURI, __hype, __twapUtils, __lendingRewards, __WETH) {
+  )
+    LendingPool(
+      _baseTokenURI,
+      __swapRouter,
+      __hype,
+      __twapUtils,
+      __lendingRewards,
+      __WETH
+    )
+  {
     hlp = new HLP();
   }
 
