@@ -177,7 +177,11 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   }
 
   function payBackLoanAndClose(uint256 _tokenId) external payable {
-    _payBackLoan(msg.sender, _tokenId, msg.value);
+    if (loans[_tokenId].amountETHBorrowed > 0) {
+      _payBackLoan(msg.sender, _tokenId, msg.value);
+    } else {
+      require(msg.value == 0, 'PAYBACKLOSE: no ETH needed');
+    }
     _withdraw(msg.sender, _tokenId, loans[_tokenId].amountDeposited);
   }
 
