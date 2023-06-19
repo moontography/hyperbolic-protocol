@@ -25,6 +25,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
 
   bool public enabled;
   bool public liquidateDefaultCapital;
+  uint32 public liquidateSlippage = 90;
   uint32 public maxLiquidationsPerUpkeep = 10;
 
   LendingPoolTokenCustodian public custodian;
@@ -479,11 +480,11 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
         if (_token0 == _WETH) {
           ERC20 _t1 = ERC20(_pool.token1());
           custodian.process(_t1, _loan.createdBy, _amountDeposited, true);
-          _processLiquidatedTokens(_pool, _t1, _amountDeposited);
+          _processLiquidatedTokens(_pool, _t1, _loan);
         } else {
           ERC20 _t0 = ERC20(_token0);
           custodian.process(_t0, _loan.createdBy, _amountDeposited, true);
-          _processLiquidatedTokens(_pool, _t0, _amountDeposited);
+          _processLiquidatedTokens(_pool, _t0, _loan);
         }
         _deleteLoan(_tokenId);
       }
@@ -493,13 +494,13 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   function _processLiquidatedTokens(
     IUniswapV3Pool _pool,
     ERC20 _token,
-    uint256 _amount
+    Loan memory _loan
   ) internal {
     if (liquidateDefaultCapital && address(_token) != address(_hype)) {
       TransferHelper.safeApprove(
         address(_token),
         address(_swapRouter),
-        _amount
+        _loan.amountDeposited
       );
       _swapRouter.exactInputSingle(
         ISwapRouter.ExactInputSingleParams({
@@ -508,8 +509,9 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
           fee: _pool.fee(),
           recipient: address(this),
           deadline: block.timestamp,
-          amountIn: _amount,
-          amountOutMinimum: 0,
+          amountIn: _loan.amountDeposited,
+          amountOutMinimum: (_loan.amountETHBorrowed * liquidateSlippage) /
+            DENOMENATOR,
           sqrtPriceLimitX96: 0
         })
       );
@@ -518,7 +520,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
         IWETH(_WETH).withdraw(_balWETH);
       }
     } else {
-      _token.safeTransfer(owner(), _amount);
+      _token.safeTransfer(owner(), _loan.amountDeposited);
     }
   }
 
@@ -529,6 +531,11 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   function setLiquidateDefaultCapital(bool _shouldLiq) external onlyOwner {
     require(liquidateDefaultCapital != _shouldLiq, 'SETLIQDEF');
     liquidateDefaultCapital = _shouldLiq;
+  }
+
+  function setLiquidateSlippage(uint32 _slippage) external onlyOwner {
+    require(_slippage <= DENOMENATOR, 'lte 100%');
+    liquidateSlippage = _slippage;
   }
 
   function setBorrowInitFee(uint32 _fee) external onlyOwner {
