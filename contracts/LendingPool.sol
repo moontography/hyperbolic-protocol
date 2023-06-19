@@ -25,7 +25,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
 
   bool public enabled;
   bool public liquidateDefaultCapital;
-  uint32 public liquidateSlippage = 90;
+  uint32 public liquidateSlippage = (DENOMENATOR * 10) / 100; // 10%
   uint32 public maxLiquidationsPerUpkeep = 10;
 
   LendingPoolTokenCustodian public custodian;
@@ -510,8 +510,8 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
           recipient: address(this),
           deadline: block.timestamp,
           amountIn: _loan.amountDeposited,
-          amountOutMinimum: (_loan.amountETHBorrowed * liquidateSlippage) /
-            DENOMENATOR,
+          amountOutMinimum: (_loan.amountETHBorrowed *
+            (DENOMENATOR - liquidateSlippage)) / DENOMENATOR,
           sqrtPriceLimitX96: 0
         })
       );
