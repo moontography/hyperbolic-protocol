@@ -288,7 +288,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     require(_amountETH > _amountFees, 'BORROW: fees more than borrow amount');
 
     uint256 _amountToBorrower = _amountETH - _amountFees;
-    _lendingRewards.depositRewards{ value: _amountFees }();
+    _depositRewards(_amountFees);
     (bool success, ) = payable(_wallet).call{ value: _amountToBorrower }('');
     require(success, 'BORROW: ETH not delivered');
 
@@ -326,7 +326,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
       _loan.amountETHBorrowed -= (_amount - _amountAPRFees);
     }
     if (_amountAPRFees > 0) {
-      _lendingRewards.depositRewards{ value: _amountAPRFees }();
+      _depositRewards(_amountAPRFees);
     }
     if (_refund > 0) {
       (bool wasRefunded, ) = payable(_wallet).call{ value: _refund }('');
@@ -352,6 +352,10 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     delete loans[_tokenId];
     loanNFT.burn(_tokenId);
     emit DeleteLoan(_tokenId);
+  }
+
+  function _depositRewards(uint256 _amount) internal virtual {
+    _lendingRewards.depositRewards{ value: _amount }();
   }
 
   function calculateAPRFees(
