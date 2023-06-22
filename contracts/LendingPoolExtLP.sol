@@ -28,12 +28,12 @@ contract LendingPoolExtLP is LendingPool {
     hlp = new HLP();
   }
 
-  function deposit() external payable {
+  function depositLiquidity() external payable {
     require(msg.value > 0, 'DEPOSIT: no ETH');
     hlp.mint(_msgSender(), msg.value);
   }
 
-  function withdraw(uint256 _amount) external {
+  function withdrawLiquidity(uint256 _amount) external {
     hlp.burn(_msgSender(), _amount);
     (bool _sent, ) = payable(_msgSender()).call{ value: _amount }('');
     require(_sent, 'WITHDRAW: ETH not sent');
