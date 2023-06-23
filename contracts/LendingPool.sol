@@ -505,7 +505,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
         address(_pool)
       );
       uint256 _priceX96 = _twapUtils.getPriceX96FromSqrtPriceX96(_sqrtPriceX96);
-      uint256 _priceWETHNumX96 = _pool.token0() == _WETH
+      uint256 _priceWETHNumX96 = _pool.token1() == _WETH
         ? _priceX96
         : FixedPoint96.Q96 ** 2 / _priceX96;
       uint256 _minETHBaseFromPrice = (_priceWETHNumX96 *
