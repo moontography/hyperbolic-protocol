@@ -501,6 +501,19 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     Loan memory _loan
   ) internal {
     if (liquidateDefaultCapital && address(_token) != address(_hype)) {
+      uint160 _sqrtPriceX96 = _twapUtils.getSqrtPriceX96FromPoolAndInterval(
+        address(_pool)
+      );
+      uint256 _priceX96 = _twapUtils.getPriceX96FromSqrtPriceX96(_sqrtPriceX96);
+      uint256 _priceWETHNumX96 = _pool.token0() == _WETH
+        ? _priceX96
+        : FixedPoint96.Q96 ** 2 / _priceX96;
+      uint256 _minETHBaseFromPrice = (_priceWETHNumX96 *
+        _loan.amountDeposited) / FixedPoint96.Q96;
+      uint256 _minETHBase = _minETHBaseFromPrice > _loan.amountETHBorrowed
+        ? _minETHBaseFromPrice
+        : _loan.amountETHBorrowed;
+
       TransferHelper.safeApprove(
         address(_token),
         address(_swapRouter),
@@ -514,8 +527,8 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
           recipient: address(this),
           deadline: block.timestamp,
           amountIn: _loan.amountDeposited,
-          amountOutMinimum: (_loan.amountETHBorrowed *
-            (DENOMENATOR - liquidateSlippage)) / DENOMENATOR,
+          amountOutMinimum: (_minETHBase * (DENOMENATOR - liquidateSlippage)) /
+            DENOMENATOR,
           sqrtPriceLimitX96: 0
         })
       );
