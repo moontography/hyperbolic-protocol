@@ -44,7 +44,14 @@ async function main() {
     // '0xE592427A0AEce92De3Edee1F18E0157C05861564',
     // '0x85225Ed797fd4128Ac45A992C46eA4681a7A15dA',
     // '0xdf9a6debb35be847d6addb7843e763539671b2c7',
-    // '0x300648a601c584e6379fa0d6a31cbbfcca6177e4',
+    // '0x300648a601c584E6379fa0D6a31CbBFCcA6177e4',
+    // '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+    // LendingPoolExtLP
+    // 'https://api.hyperbolicprotocol.com/loans/ext/metadata/',
+    // '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    // '0x85225Ed797fd4128Ac45A992C46eA4681a7A15dA',
+    // '0xdf9a6debb35be847d6addb7843e763539671b2c7',
+    // '0x300648a601c584E6379fa0D6a31CbBFCcA6177e4',
     // '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
 
     // eth
