@@ -181,7 +181,7 @@ contract LoanToken is ERC721Enumerable, Ownable {
 
       // update all opened
       _openedIndex[_tokenId] = _openedLoans.length;
-      _openedLoans.push(_ids.current());
+      _openedLoans.push(_tokenId);
     }
   }
 }

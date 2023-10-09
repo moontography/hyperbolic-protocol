@@ -16,10 +16,9 @@ async function main() {
     '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
     '0xE592427A0AEce92De3Edee1F18E0157C05861564',
     '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-    '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
-    '1000000'
+    '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
     // LendingPool
-    // 'https://api.hyperbolic-protocol.com/TODO',
+    // 'https://api.hyperbolicprotocol.com/loans/metadata/',
     // '',
     // '0x0A3C6F5CCe52B9Ff2FFA0371146D1DB8AA84B703',
     // '0x719722662A467105420a55D36063B10558a3Efde',
@@ -35,12 +34,39 @@ async function main() {
 
     // arbitrum
     // HyperbolicProtocol
-    // '',
+    // '0xdf9a6debb35be847d6addb7843e763539671b2c7',
     // '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
     // '0xE592427A0AEce92De3Edee1F18E0157C05861564',
     // '0x1F98431c8aD98523631AE4a59f267346ea31F984',
-    // '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-    // '1000000'
+    // '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+    // LendingPool
+    // 'https://api.hyperbolicprotocol.com/loans/metadata/',
+    // '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    // '0x85225Ed797fd4128Ac45A992C46eA4681a7A15dA',
+    // '0xdf9a6debb35be847d6addb7843e763539671b2c7',
+    // '0x300648a601c584e6379fa0d6a31cbbfcca6177e4',
+    // '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'
+
+    // eth
+    // '0xBf1858b24243Ecbcf7d940f458e36CB7401c2366',
+    // '0xC36442b4a4522E871399CD717aBDD847Ab11FE88',
+    // '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    // '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+    // '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+    // LendingPool
+    // 'https://api.hyperbolicprotocol.com/loans/metadata/',
+    // '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    // '0x85225Ed797fd4128Ac45A992C46eA4681a7A15dA',
+    // '0xBf1858b24243Ecbcf7d940f458e36CB7401c2366',
+    // '0x300648a601c584E6379fa0D6a31CbBFCcA6177e4',
+    // '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+    // LendingPoolExtLP
+    // 'https://api.hyperbolicprotocol.com/loans/ext/metadata/',
+    // '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    // '0x85225Ed797fd4128Ac45A992C46eA4681a7A15dA',
+    // '0xBf1858b24243Ecbcf7d940f458e36CB7401c2366',
+    // '0x300648a601c584E6379fa0D6a31CbBFCcA6177e4',
+    // '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
   )
 
   console.log('Contract address:', contract.address)
