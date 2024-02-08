@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.19;
 pragma abicoder v2;
 
-import '@chainlink/contracts/src/v0.7/KeeperCompatible.sol';
+import '@chainlink/contracts/src/v0.8/automation/KeeperCompatible.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '@uniswap/v3-core/contracts/libraries/FixedPoint96.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
@@ -21,6 +21,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   using SafeERC20 for ERC20;
 
   uint32 constant DENOMENATOR = 10000;
+  uint256 Q96_2 = 2 ** (96 / 2);
   address immutable _WETH;
 
   bool public enabled;
@@ -135,8 +136,8 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     uint256 _amountETHBorrWithFeesX96 = (_loan.amountETHBorrowed + _fees) *
       FixedPoint96.Q96;
     return (
-      (_amountETHBorrowedX96 * FixedPoint96.Q96) / _amountETHDepositedX96,
-      (_amountETHBorrWithFeesX96 * FixedPoint96.Q96) / _amountETHDepositedX96,
+      ((_amountETHBorrowedX96 * Q96_2) / _amountETHDepositedX96) * Q96_2,
+      ((_amountETHBorrWithFeesX96 * Q96_2) / _amountETHDepositedX96) * Q96_2,
       _amountETHDepositedX96,
       _amountETHBorrowedX96
     );
