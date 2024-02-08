@@ -130,7 +130,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     uint256 _priceX96 = _twapUtils.getPriceX96FromSqrtPriceX96(_sqrtPriceX96);
     address _token0 = IUniswapV3Pool(_loan.collateralPool).token0();
     uint256 _amountETHDepositedX96 = _token0 == _WETH
-      ? _loan.amountDeposited * (2 ** (96 * 2) / _priceX96)
+      ? _loan.amountDeposited * (FixedPoint96.Q96 ** 2 / _priceX96)
       : _priceX96 * _loan.amountDeposited;
     uint256 _amountETHBorrowedX96 = _loan.amountETHBorrowed * FixedPoint96.Q96;
     uint256 _amountETHBorrWithFeesX96 = (_loan.amountETHBorrowed + _fees) *
