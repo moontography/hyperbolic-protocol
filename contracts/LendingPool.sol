@@ -156,17 +156,20 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     address _pool,
     uint256 _amountDepositing,
     uint256 _amountETHBorrowing
-  ) external {
+  ) external returns (uint256 tokenId) {
     _tokenId = _deposit(msg.sender, _tokenId, _pool, _amountDepositing);
-    _borrow(msg.sender, _tokenId, _amountETHBorrowing);
+    return _borrow(msg.sender, _tokenId, _amountETHBorrowing);
   }
 
   function deposit(uint256 _tokenId, address _pool, uint256 _amount) external {
     _deposit(msg.sender, _tokenId, _pool, _amount);
   }
 
-  function borrow(uint256 _tokenId, uint256 _amountETHBorrowing) external {
-    _borrow(msg.sender, _tokenId, _amountETHBorrowing);
+  function borrow(
+    uint256 _tokenId,
+    uint256 _amountETHBorrowing
+  ) external returns (uint256 tokenId) {
+    return _borrow(msg.sender, _tokenId, _amountETHBorrowing);
   }
 
   function withdraw(uint256 _tokenId, uint256 _amount) external {
