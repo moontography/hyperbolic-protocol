@@ -64,14 +64,14 @@ async function main() {
     // '0x1F98431c8aD98523631AE4a59f267346ea31F984',
     // '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
     // LendingPool
-    // 'https://api.hyperbolicprotocol.com/loans/arbitrum/metadata/',
+    // 'https://api.hyperbolicprotocol.com/loans/eth/metadata/',
     // '0xE592427A0AEce92De3Edee1F18E0157C05861564',
     // '0x85225Ed797fd4128Ac45A992C46eA4681a7A15dA',
     // '0xBf1858b24243Ecbcf7d940f458e36CB7401c2366',
     // '0x300648a601c584E6379fa0D6a31CbBFCcA6177e4',
     // '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
     // LendingPoolExtLP
-    // 'https://api.hyperbolicprotocol.com/loans/arbitrum/ext/metadata/',
+    // 'https://api.hyperbolicprotocol.com/loans/eth/ext/metadata/',
     // '0xE592427A0AEce92De3Edee1F18E0157C05861564',
     // '0x85225Ed797fd4128Ac45A992C46eA4681a7A15dA',
     // '0xBf1858b24243Ecbcf7d940f458e36CB7401c2366',
