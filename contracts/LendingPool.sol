@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 pragma abicoder v2;
 
-import '@chainlink/contracts/src/v0.8/automation/KeeperCompatible.sol';
+import '@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
@@ -17,7 +17,7 @@ import './interfaces/IHyperbolicProtocol.sol';
 import './interfaces/ITwapUtils.sol';
 import './interfaces/IWETH.sol';
 
-contract LendingPool is Ownable, KeeperCompatibleInterface {
+contract LendingPool is Ownable, AutomationCompatibleInterface {
   using SafeERC20 for ERC20;
 
   uint32 constant DENOMENATOR = 10000;
