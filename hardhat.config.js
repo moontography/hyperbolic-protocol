@@ -98,7 +98,7 @@ const config = {
     tests: './test',
   },
   solidity: {
-    version: '0.7.6',
+    version: '0.8.19',
     settings: {
       metadata: {
         // Not including the metadata hash

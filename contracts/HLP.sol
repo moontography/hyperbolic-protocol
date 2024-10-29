@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.19;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import './LendingRewards.sol';
@@ -26,26 +26,7 @@ contract HLP is ERC20 {
     _burn(_wallet, _amount);
   }
 
-  function _transfer(
-    address sender,
-    address recipient,
-    uint256 amount
-  ) internal virtual override {
-    super._transfer(sender, recipient, amount);
-    _afterTokenTransfer(sender, recipient, amount);
-  }
-
-  function _mint(address account, uint256 amount) internal override {
-    super._mint(account, amount);
-    _afterTokenTransfer(address(0), account, amount);
-  }
-
-  function _burn(address account, uint256 amount) internal override {
-    super._burn(account, amount);
-    _afterTokenTransfer(account, address(0), amount);
-  }
-
-  function _canReceiveRewards(address _wallet) internal view returns (bool) {
+  function _canReceiveRewards(address _wallet) internal pure returns (bool) {
     return _wallet != address(0);
   }
 
@@ -53,7 +34,7 @@ contract HLP is ERC20 {
     address _from,
     address _to,
     uint256 _amount
-  ) internal virtual {
+  ) internal virtual override {
     if (_canReceiveRewards(_from)) {
       lendingRewards.setShare(_from, _amount, true);
     }

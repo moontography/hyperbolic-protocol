@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.19;
 
 import './interfaces/IRewardsTracker.sol';
 import './libraries/BokkyPooBahsDateTimeLibrary.sol';
@@ -151,7 +151,7 @@ contract RewardsTracker is IRewardsTracker {
     return earnedRewards - rewardsExcluded;
   }
 
-  function beginningOfMonth(uint256 _timestamp) public view returns (uint256) {
+  function beginningOfMonth(uint256 _timestamp) public pure returns (uint256) {
     (, , uint256 _dayOfMonth) = BokkyPooBahsDateTimeLibrary.timestampToDate(
       _timestamp
     );

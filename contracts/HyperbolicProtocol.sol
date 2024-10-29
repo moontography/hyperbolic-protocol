@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.19;
 
 import '@uniswap/v3-core/contracts/libraries/FixedPoint96.sol';
 import './LendingRewards.sol';
@@ -116,25 +116,11 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
         _tax = calculateTaxFromAmount(amount);
         if (_tax > 0) {
           super._transfer(sender, address(this), _tax);
-          _afterTokenTransfer(sender, address(this), _tax);
         }
       }
     }
 
     super._transfer(sender, recipient, amount - _tax);
-    _afterTokenTransfer(sender, recipient, amount - _tax);
-  }
-
-  // NOTE: need this to execute _afterTokenTransfer callback (not present in openzeppelin 3.4.2)
-  function _mint(address account, uint256 amount) internal override {
-    super._mint(account, amount);
-    _afterTokenTransfer(address(0), account, amount);
-  }
-
-  // NOTE: need this to execute _afterTokenTransfer callback (not present in openzeppelin 3.4.2)
-  function _burn(address account, uint256 amount) internal override {
-    super._burn(account, amount);
-    _afterTokenTransfer(account, address(0), amount);
   }
 
   function burn(uint256 _amount) external {
@@ -332,7 +318,7 @@ contract HyperbolicProtocol is IHyperbolicProtocol, UniswapV3FeeERC20 {
     address _from,
     address _to,
     uint256 _amount
-  ) internal virtual {
+  ) internal virtual override {
     if (_canReceiveRewards(_from)) {
       lendingRewards.setShare(_from, _amount, true);
     }

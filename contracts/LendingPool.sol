@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.19;
 pragma abicoder v2;
 
-import '@chainlink/contracts/src/v0.7/KeeperCompatible.sol';
+import '@chainlink/contracts/src/v0.8/automation/KeeperCompatible.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '@uniswap/v3-core/contracts/libraries/FixedPoint96.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
@@ -21,6 +21,7 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
   using SafeERC20 for ERC20;
 
   uint32 constant DENOMENATOR = 10000;
+  uint256 Q96_2 = 2 ** (96 / 2);
   address immutable _WETH;
 
   bool public enabled;
@@ -129,14 +130,14 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     uint256 _priceX96 = _twapUtils.getPriceX96FromSqrtPriceX96(_sqrtPriceX96);
     address _token0 = IUniswapV3Pool(_loan.collateralPool).token0();
     uint256 _amountETHDepositedX96 = _token0 == _WETH
-      ? _loan.amountDeposited * (2 ** (96 * 2) / _priceX96)
+      ? _loan.amountDeposited * (FixedPoint96.Q96 ** 2 / _priceX96)
       : _priceX96 * _loan.amountDeposited;
     uint256 _amountETHBorrowedX96 = _loan.amountETHBorrowed * FixedPoint96.Q96;
     uint256 _amountETHBorrWithFeesX96 = (_loan.amountETHBorrowed + _fees) *
       FixedPoint96.Q96;
     return (
-      (_amountETHBorrowedX96 * FixedPoint96.Q96) / _amountETHDepositedX96,
-      (_amountETHBorrWithFeesX96 * FixedPoint96.Q96) / _amountETHDepositedX96,
+      ((_amountETHBorrowedX96 * Q96_2) / _amountETHDepositedX96) * Q96_2,
+      ((_amountETHBorrWithFeesX96 * Q96_2) / _amountETHDepositedX96) * Q96_2,
       _amountETHDepositedX96,
       _amountETHBorrowedX96
     );
@@ -155,17 +156,20 @@ contract LendingPool is Ownable, KeeperCompatibleInterface {
     address _pool,
     uint256 _amountDepositing,
     uint256 _amountETHBorrowing
-  ) external {
+  ) external returns (uint256 tokenId) {
     _tokenId = _deposit(msg.sender, _tokenId, _pool, _amountDepositing);
-    _borrow(msg.sender, _tokenId, _amountETHBorrowing);
+    return _borrow(msg.sender, _tokenId, _amountETHBorrowing);
   }
 
   function deposit(uint256 _tokenId, address _pool, uint256 _amount) external {
     _deposit(msg.sender, _tokenId, _pool, _amount);
   }
 
-  function borrow(uint256 _tokenId, uint256 _amountETHBorrowing) external {
-    _borrow(msg.sender, _tokenId, _amountETHBorrowing);
+  function borrow(
+    uint256 _tokenId,
+    uint256 _amountETHBorrowing
+  ) external returns (uint256 tokenId) {
+    return _borrow(msg.sender, _tokenId, _amountETHBorrowing);
   }
 
   function withdraw(uint256 _tokenId, uint256 _amount) external {
